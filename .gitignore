@@ -28,3 +28,27 @@ dist/
 ## Logs & misc
 logs/
 *.log
+
+## Security - certificates and secrets
+*.pfx
+*.key
+*.pem
+secrets.json
+appsettings.Staging.json
+
+## Local databases
+*.db
+*.sqlite
+
+## Windows
+Thumbs.db
+
+## Test coverage
+coverage/
+.nyc_output/
+
+## Docker overrides
+docker-compose.override.yml
+
+## User uploads
+wwwroot/uploads/
