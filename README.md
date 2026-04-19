@@ -1,7 +1,14 @@
-# 🛵 Gülbahçe Yemek Platformu
+# 🛵 Arrivo
 
-> Gülbahçe Köyü & İYTE Kampüsü'ne özel çok restoranlı yemek sipariş platformu.  
-> Bölgede Yemeksepeti boşluğunu kapatan ilk ve tek platform.
+> **Arrivo** — İtalyanca'da *varış* anlamına gelir.
+> Gülbahçe Köyü & İYTE Kampüsü'ne özel çok restoranlı yemek sipariş platformu.
+> Bölgede Yemeksepeti boşluğunu kapatan ilk ve tek platform. **arrivo.com.tr**
+
+---
+
+## 🧩 Neden Arrivo?
+
+Gülbahçe Köyü ve İzmir Yüksek Teknoloji Enstitüsü (İYTE) kampüsünde yaşayan binlerce kişi, ülke genelinde yaygın yemek platformlarının kapsama alanı dışında kalıyordu. Arrivo, bu boşluğu doldurmak için tasarlandı: bölgeye özgü restoranları, gerçek zamanlı sipariş takibi ile tek çatı altında birleştiren modern bir teslimat platformu.
 
 ---
 
@@ -22,15 +29,15 @@
 ## 🗂 Proje Yapısı
 
 ```
-gulbahcesepeti/
+arrivo/
 ├── src/
-│   ├── GulbahceSepeti.API/          # ASP.NET Core Web API
-│   ├── GulbahceSepeti.Application/  # CQRS, Use Cases, DTOs
-│   ├── GulbahceSepeti.Domain/       # Entities, Enums, Domain Logic
-│   └── GulbahceSepeti.Infrastructure/ # DB, Identity, SignalR, Services
-├── frontend/                        # React + Vite (Müşteri + Admin + POS)
-├── docs/                            # API dökümantasyonu
-└── .github/workflows/               # CI/CD
+│   ├── Arrivo.API/              # ASP.NET Core Web API — controller'lar, middleware, DI
+│   ├── Arrivo.Application/      # CQRS, Use Cases, DTOs, interface'ler
+│   ├── Arrivo.Domain/           # Entity'ler, Enum'lar, Domain Mantığı
+│   └── Arrivo.Infrastructure/   # DB, Identity, SignalR, Servisler
+├── frontend/                    # React + Vite (Müşteri + Admin + POS)
+├── docs/                        # API dökümantasyonu
+└── .github/workflows/           # CI/CD
 ```
 
 ---
@@ -51,9 +58,9 @@ gulbahcesepeti/
 ### Backend
 
 ```bash
-cd src/GulbahceSepeti.API
+cd src/Arrivo.API
 cp appsettings.example.json appsettings.Development.json
-# appsettings.Development.json'ı düzenle
+# appsettings.Development.json dosyasını düzenle (DB bağlantısı, JWT key, vb.)
 dotnet ef database update
 dotnet run
 ```
@@ -80,4 +87,10 @@ npm run dev
 
 ---
 
-*Gülbahçe Yemek Platformu — MVP v1.0*
+## 🌐 Domain
+
+**arrivo.com.tr** — Gülbahçe Köyü & İYTE Kampüsü'ne özel teslimat platformu.
+
+---
+
+*Arrivo — MVP v1.0 · arrivo.com.tr*
