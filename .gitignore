@@ -1,0 +1,30 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.swp
+*.DS_Store
+appsettings.Development.json
+appsettings.Production.json
+
+## NuGet
+*.nupkg
+.nuget/
+
+## Node / Frontend
+node_modules/
+dist/
+.env
+.env.local
+.env.production
+
+## Rider / VS Code
+.idea/
+.vscode/
+*.iml
+
+## Logs & misc
+logs/
+*.log
