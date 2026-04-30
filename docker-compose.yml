@@ -1,30 +1,15 @@
 version: "3.9"
 
-services:
-  postgres:
-    image: postgres:16
-    container_name: arrivo_postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: ArrivoDB
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: arrivo_pgadmin
-    restart: unless-stopped
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@arrivo.local
-      PGADMIN_DEFAULT_PASSWORD: admin
-    ports:
-      - "5050:80"
-    depends_on:
-      - postgres
-
-volumes:
-  postgres_data:
+# PostgreSQL removed - project now uses MSSQL/LocalDB
+# Uncomment below to run a local MSSQL container instead of LocalDB
+#
+# services:
+#   mssql:
+#     image: mcr.microsoft.com/mssql/server:2022-latest
+#     container_name: arrivo_mssql
+#     restart: unless-stopped
+#     environment:
+#       SA_PASSWORD: "YourStrong@Password1"
+#       ACCEPT_EULA: "Y"
+#     ports:
+#       - "1433:1433"
