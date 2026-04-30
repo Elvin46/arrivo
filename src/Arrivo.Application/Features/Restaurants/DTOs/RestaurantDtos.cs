@@ -45,3 +45,6 @@ public record UpdateRestaurantRequest(
     decimal MinimumOrderAmount,
     int EstimatedDeliveryMinutes
 );
+
+/// <summary>true = aktif, false = pasif (askıya alınmış)</summary>
+public record SetRestaurantStatusRequest(bool Activate);

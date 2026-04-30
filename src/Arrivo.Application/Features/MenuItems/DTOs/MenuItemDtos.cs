@@ -27,3 +27,5 @@ public record UpdateMenuItemRequest(
     string Category,
     string? ImageUrl
 );
+
+public record SetAvailabilityRequest(bool IsAvailable);

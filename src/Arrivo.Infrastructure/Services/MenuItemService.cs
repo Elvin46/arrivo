@@ -12,12 +12,22 @@ public class MenuItemService : IMenuItemService
 
     public MenuItemService(IApplicationDbContext db) => _db = db;
 
-    public async Task<IEnumerable<MenuItemDto>> GetByRestaurantAsync(Guid restaurantId, CancellationToken ct = default)
+    public async Task<IEnumerable<MenuItemDto>> GetByRestaurantAsync(Guid restaurantId, string? category = null, CancellationToken ct = default)
     {
-        var items = await _db.MenuItems
-            .Where(m => m.RestaurantId == restaurantId)
-            .ToListAsync(ct);
+        var query = _db.MenuItems.Where(m => m.RestaurantId == restaurantId);
+
+        if (!string.IsNullOrWhiteSpace(category))
+            query = query.Where(m => m.Category == category);
+
+        var items = await query.ToListAsync(ct);
         return items.Select(MapToDto);
+    }
+
+    public async Task<MenuItemDto> GetByIdAsync(Guid id, CancellationToken ct = default)
+    {
+        var item = await _db.MenuItems.FindAsync([id], ct)
+            ?? throw new NotFoundException(nameof(MenuItem), id);
+        return MapToDto(item);
     }
 
     public async Task<MenuItemDto> CreateAsync(CreateMenuItemRequest request, string requestingUserId, CancellationToken ct = default)
@@ -53,14 +63,14 @@ public class MenuItemService : IMenuItemService
         return MapToDto(item);
     }
 
-    public async Task SetAvailabilityAsync(Guid id, bool isAvailable, string requestingUserId, CancellationToken ct = default)
+    public async Task SetAvailabilityAsync(Guid id, bool isAvailable, string requestingUserId, bool skipOwnerCheck = false, CancellationToken ct = default)
     {
         var item = await _db.MenuItems
             .Include(m => m.Restaurant)
             .FirstOrDefaultAsync(m => m.Id == id, ct)
             ?? throw new NotFoundException(nameof(MenuItem), id);
 
-        if (item.Restaurant.OwnerId != requestingUserId)
+        if (!skipOwnerCheck && item.Restaurant.OwnerId != requestingUserId)
             throw new ForbiddenException();
 
         item.SetAvailability(isAvailable);

@@ -48,12 +48,12 @@ public class RestaurantService : IRestaurantService
         return MapToDto(restaurant);
     }
 
-    public async Task<RestaurantDto> UpdateAsync(Guid id, UpdateRestaurantRequest request, string requestingUserId, CancellationToken ct = default)
+    public async Task<RestaurantDto> UpdateAsync(Guid id, UpdateRestaurantRequest request, string requestingUserId, bool isAdmin = false, CancellationToken ct = default)
     {
         var r = await _db.Restaurants.FindAsync([id], ct)
             ?? throw new NotFoundException(nameof(Restaurant), id);
 
-        if (r.OwnerId != requestingUserId)
+        if (!isAdmin && r.OwnerId != requestingUserId)
             throw new ForbiddenException();
 
         r.Update(request.Name, request.Description, request.PhoneNumber,
@@ -62,6 +62,19 @@ public class RestaurantService : IRestaurantService
 
         await _db.SaveChangesAsync(ct);
         return MapToDto(r);
+    }
+
+    public async Task SetStatusAsync(Guid id, bool activate, CancellationToken ct = default)
+    {
+        var r = await _db.Restaurants.FindAsync([id], ct)
+            ?? throw new NotFoundException(nameof(Restaurant), id);
+
+        if (activate)
+            r.Approve();
+        else
+            r.Suspend();
+
+        await _db.SaveChangesAsync(ct);
     }
 
     public async Task ApproveAsync(Guid id, CancellationToken ct = default)
