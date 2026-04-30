@@ -1,5 +1,6 @@
 using Arrivo.Application.Common.Interfaces;
 using Arrivo.Application.Features.Auth.DTOs;
+using Arrivo.Infrastructure.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,7 +14,7 @@ public class AuthController : ControllerBase
 
     public AuthController(IAuthService auth) => _auth = auth;
 
-    /// <summary>Yeni kullanıcı kaydı (telefon numarası ile)</summary>
+    /// <summary>Yeni kullanıcı kaydı (e-posta ile)</summary>
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken ct)
     {
@@ -21,7 +22,7 @@ public class AuthController : ControllerBase
         return CreatedAtAction(nameof(Me), result);
     }
 
-    /// <summary>Giriş — JWT token döner</summary>
+    /// <summary>Giriş — JWT access token + refresh token döner</summary>
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken ct)
     {
@@ -29,7 +30,15 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
-    /// <summary>Token'dan profil bilgisi</summary>
+    /// <summary>Refresh token ile yeni access token alır</summary>
+    [HttpPost("refresh-token")]
+    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request, CancellationToken ct)
+    {
+        var result = await _auth.RefreshTokenAsync(request.RefreshToken, ct);
+        return Ok(result);
+    }
+
+    /// <summary>Token'dan profil bilgisi döner</summary>
     [HttpGet("me")]
     [Authorize]
     public async Task<IActionResult> Me(CancellationToken ct)
@@ -37,5 +46,13 @@ public class AuthController : ControllerBase
         var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value;
         var profile = await _auth.GetProfileAsync(userId, ct);
         return Ok(profile);
+    }
+
+    /// <summary>Platform admin testi — sadece platform_admin rolü erişebilir</summary>
+    [HttpGet("admin-only")]
+    [Authorize(Roles = AppRoles.PlatformAdmin)]
+    public IActionResult AdminOnly()
+    {
+        return Ok(new { message = "Platform admin erişimi başarılı.", userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value });
     }
 }

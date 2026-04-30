@@ -54,10 +54,11 @@ public static class DbInitializer
         {
             var admin = new ApplicationUser
             {
-                UserName = "admin",
+                UserName = "admin@arrivo.io",
                 Email = "admin@arrivo.io",
                 EmailConfirmed = true,
-                FullName = "Platform Admin",
+                FirstName = "Platform",
+                LastName = "Admin",
                 PhoneNumber = "+905000000000"
             };
             var result = await userManager.CreateAsync(admin, "Admin123!");
@@ -73,10 +74,11 @@ public static class DbInitializer
         {
             var owner = new ApplicationUser
             {
-                UserName = "fabrika_owner",
+                UserName = "fabrika@arrivo.io",
                 Email = "fabrika@arrivo.io",
                 EmailConfirmed = true,
-                FullName = "Fabrika Kitchen Sahibi",
+                FirstName = "Fabrika Kitchen",
+                LastName = "Sahibi",
                 PhoneNumber = "+905001234567"
             };
             var result = await userManager.CreateAsync(owner, "Owner123!");
@@ -92,10 +94,11 @@ public static class DbInitializer
         {
             var cashier = new ApplicationUser
             {
-                UserName = "kasiyer",
+                UserName = "kasiyer@arrivo.io",
                 Email = "kasiyer@arrivo.io",
                 EmailConfirmed = true,
-                FullName = "Fabrika Kitchen Kasiyer",
+                FirstName = "Fabrika Kitchen",
+                LastName = "Kasiyer",
                 PhoneNumber = "+905009876543"
             };
             var result = await userManager.CreateAsync(cashier, "Cashier123!");

@@ -1,10 +1,16 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.AspNetCore.Identity;
 
 namespace Arrivo.Infrastructure.Identity;
 
 public class ApplicationUser : IdentityUser
 {
-    public string FullName { get; set; } = default!;
+    public string FirstName { get; set; } = default!;
+    public string LastName { get; set; } = default!;
+
+    [NotMapped]
+    public string FullName => $"{FirstName} {LastName}".Trim();
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public bool IsActive { get; set; } = true;
 }

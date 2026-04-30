@@ -1,11 +1,15 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using Arrivo.Application.Common.Exceptions;
 using Arrivo.Application.Common.Interfaces;
 using Arrivo.Application.Features.Auth.DTOs;
+using Arrivo.Domain.Entities;
 using Arrivo.Infrastructure.Identity;
+using Arrivo.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 
@@ -15,24 +19,32 @@ public class AuthService : IAuthService
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IConfiguration _config;
+    private readonly AppDbContext _db;
 
-    public AuthService(UserManager<ApplicationUser> userManager, IConfiguration config)
+    public AuthService(
+        UserManager<ApplicationUser> userManager,
+        IConfiguration config,
+        AppDbContext db)
     {
         _userManager = userManager;
         _config = config;
+        _db = db;
     }
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request, CancellationToken ct = default)
     {
-        var existing = await _userManager.FindByNameAsync(request.PhoneNumber);
+        var existing = await _userManager.FindByEmailAsync(request.Email);
         if (existing != null)
-            throw new BusinessRuleException("Bu telefon numarası zaten kayıtlı.");
+            throw new BusinessRuleException("Bu e-posta adresi zaten kayıtlı.");
 
         var user = new ApplicationUser
         {
-            UserName = request.PhoneNumber,
+            UserName = request.Email,
+            Email = request.Email,
+            EmailConfirmed = true,
+            FirstName = request.FirstName,
+            LastName = request.LastName,
             PhoneNumber = request.PhoneNumber,
-            FullName = request.FullName,
             PhoneNumberConfirmed = true
         };
 
@@ -42,21 +54,46 @@ public class AuthService : IAuthService
 
         await _userManager.AddToRoleAsync(user, AppRoles.Customer);
 
-        return await BuildAuthResponseAsync(user);
+        return await BuildAuthResponseAsync(user, ct);
     }
 
     public async Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken ct = default)
     {
-        var user = await _userManager.FindByNameAsync(request.PhoneNumber)
-            ?? throw new BusinessRuleException("Telefon numarası veya şifre hatalı.");
+        var user = await _userManager.FindByEmailAsync(request.Email)
+            ?? throw new BusinessRuleException("E-posta veya şifre hatalı.");
 
         if (!await _userManager.CheckPasswordAsync(user, request.Password))
-            throw new BusinessRuleException("Telefon numarası veya şifre hatalı.");
+            throw new BusinessRuleException("E-posta veya şifre hatalı.");
 
         if (!user.IsActive)
             throw new BusinessRuleException("Hesabınız askıya alınmıştır.");
 
-        return await BuildAuthResponseAsync(user);
+        return await BuildAuthResponseAsync(user, ct);
+    }
+
+    public async Task<AuthResponse> RefreshTokenAsync(string refreshToken, CancellationToken ct = default)
+    {
+        var stored = await _db.RefreshTokens
+            .FirstOrDefaultAsync(r => r.Token == refreshToken, ct)
+            ?? throw new BusinessRuleException("Geçersiz refresh token.");
+
+        if (stored.IsRevoked)
+            throw new BusinessRuleException("Refresh token iptal edilmiş.");
+
+        if (stored.ExpiresAt < DateTime.UtcNow)
+            throw new BusinessRuleException("Refresh token süresi dolmuş.");
+
+        var user = await _userManager.FindByIdAsync(stored.UserId)
+            ?? throw new NotFoundException(nameof(ApplicationUser), stored.UserId);
+
+        if (!user.IsActive)
+            throw new BusinessRuleException("Hesabınız askıya alınmıştır.");
+
+        // Revoke old token
+        stored.IsRevoked = true;
+        await _db.SaveChangesAsync(ct);
+
+        return await BuildAuthResponseAsync(user, ct);
     }
 
     public async Task<UserProfileDto> GetProfileAsync(string userId, CancellationToken ct = default)
@@ -65,17 +102,24 @@ public class AuthService : IAuthService
             ?? throw new NotFoundException(nameof(ApplicationUser), userId);
 
         var roles = await _userManager.GetRolesAsync(user);
-        return new UserProfileDto(user.Id, user.FullName, user.PhoneNumber!, roles);
+        return new UserProfileDto(user.Id, user.Email!, user.FirstName, user.LastName, roles);
     }
 
     // ─── Private ────────────────────────────────────────────────────────────────
 
-    private async Task<AuthResponse> BuildAuthResponseAsync(ApplicationUser user)
+    private async Task<AuthResponse> BuildAuthResponseAsync(ApplicationUser user, CancellationToken ct)
     {
         var roles = await _userManager.GetRolesAsync(user);
-        var (token, expires) = GenerateJwt(user, roles);
+        var (accessToken, expires) = GenerateJwt(user, roles);
+        var refreshToken = await GenerateRefreshTokenAsync(user.Id, ct);
+        var primaryRole = roles.FirstOrDefault() ?? AppRoles.Customer;
 
-        return new AuthResponse(user.Id, user.FullName, user.PhoneNumber!, token, expires, roles);
+        return new AuthResponse(
+            AccessToken: accessToken,
+            RefreshToken: refreshToken,
+            ExpiresAt: expires,
+            User: new UserDto(user.Id, user.Email!, user.FirstName, user.LastName, primaryRole)
+        );
     }
 
     private (string Token, DateTime Expires) GenerateJwt(ApplicationUser user, IList<string> roles)
@@ -83,13 +127,13 @@ public class AuthService : IAuthService
         var jwtKey = _config["Jwt:Key"] ?? throw new InvalidOperationException("JWT key not configured.");
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        var expires = DateTime.UtcNow.AddDays(7);
+        var expires = DateTime.UtcNow.AddHours(1);
 
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, user.Id),
+            new(ClaimTypes.Email, user.Email ?? ""),
             new(ClaimTypes.Name, user.FullName),
-            new("phone", user.PhoneNumber ?? ""),
         };
 
         claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
@@ -103,5 +147,24 @@ public class AuthService : IAuthService
         );
 
         return (new JwtSecurityTokenHandler().WriteToken(token), expires);
+    }
+
+    private async Task<string> GenerateRefreshTokenAsync(string userId, CancellationToken ct)
+    {
+        var tokenBytes = RandomNumberGenerator.GetBytes(64);
+        var token = Convert.ToBase64String(tokenBytes);
+
+        var refreshToken = new RefreshToken
+        {
+            UserId = userId,
+            Token = token,
+            ExpiresAt = DateTime.UtcNow.AddDays(30),
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _db.RefreshTokens.Add(refreshToken);
+        await _db.SaveChangesAsync(ct);
+
+        return token;
     }
 }
