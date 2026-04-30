@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Arrivo.API/Arrivo.API.csproj" />
+    <Project Path="src/Arrivo.Application/Arrivo.Application.csproj" />
+    <Project Path="src/Arrivo.Domain/Arrivo.Domain.csproj" />
+    <Project Path="src/Arrivo.Infrastructure/Arrivo.Infrastructure.csproj" />
+  </Folder>
+</Solution>
