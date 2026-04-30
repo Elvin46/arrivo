@@ -3,6 +3,7 @@ using Arrivo.API.Middleware;
 using Arrivo.API.Services;
 using Arrivo.Application.Common.Interfaces;
 using Arrivo.Infrastructure;
+using Arrivo.Infrastructure.Persistence.Seeds;
 using Arrivo.Infrastructure.SignalR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -118,5 +119,11 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<OrderHub>("/hubs/orders");
+
+// ─── Database Initialization ─────────────────────────────────────────────────
+if (app.Environment.IsDevelopment())
+{
+    await DbInitializer.InitializeAsync(app.Services);
+}
 
 app.Run();
